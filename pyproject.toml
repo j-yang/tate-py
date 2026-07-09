@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "tate-py"
+description = "Structured data version control — Python bindings for tate"
+license = "MIT"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Version Control",
+]
+keywords = ["diff", "merge", "version-control", "structured-data", "json"]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
