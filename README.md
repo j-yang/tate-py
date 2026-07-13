@@ -1,7 +1,7 @@
 # tate-py
 
 Python bindings for [tate](https://github.com/j-yang/tate) — structured data
-version control with identity-aware merge.
+version control with identity-aware, sheaf-pushout merge.
 
 ## Install
 
@@ -49,14 +49,32 @@ v2 = repo.commit("Bob -> Robert", [v0], {
 merged, conflicts = repo.merge(v1, v2)
 print(f"Conflicts: {conflicts}")  # []
 
-# Diff: what changed?
-edits = repo.diff(v0, v1)
-for e in edits:
-    print(f"  {e.location}: {e.old} -> {e.new}")
+# Diff: what changed? Each edit is a (identity, old, new) tuple.
+for identity, old, new in repo.diff(v0, v1):
+    print(f"  {identity}: {old} -> {new}")
 
 # History.
 for h, msg in repo.log():
     print(f"  {h}: {msg}")
+```
+
+### Conflicts
+
+`repo.merge` runs the two-stage sheaf merge and returns the merged tree
+plus a list of conflict dicts, each `{"kind", "identity", "missing_parent"}`:
+
+- `Field` — both branches changed the same field (the only kind a discrete
+  per-field model can see).
+- `Dangling` — a present node ended up referencing a parent that was
+  deleted on the other branch. This *structural* conflict is invisible to
+  a discrete merge; `missing_parent` names the absent reference and the
+  node is dropped from the merged tree.
+
+```python
+merged, conflicts = repo.merge(ours, theirs)
+for c in conflicts:
+    if c["kind"] == "Dangling":
+        print(f"structural conflict at {c['identity']}: parent {c['missing_parent']} gone")
 ```
 
 ### Structural diff (no repo)
