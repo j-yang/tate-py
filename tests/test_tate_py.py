@@ -104,3 +104,34 @@ def test_merge_trees_clean():
     merged, n = merge_trees(base, ours, theirs)
     assert n == 0
     assert merged is not None
+
+
+def test_structural_dangling_conflict():
+    # Sheaf merge's defining capability: ours deletes Q while theirs moves C
+    # under Q. C ends up present with parent Q absent -> a Dangling conflict,
+    # invisible to the discrete per-field model.
+    base = {"kind": "root", "children": [
+        {"kind": "p", "identity": "P", "children": [
+            {"kind": "c", "identity": "C", "attributes": {"value": "1"}}]},
+        {"kind": "q", "identity": "Q"},
+    ]}
+    ours = {"kind": "root", "children": [
+        {"kind": "p", "identity": "P", "children": [
+            {"kind": "c", "identity": "C", "attributes": {"value": "1"}}]},
+    ]}
+    theirs = {"kind": "root", "children": [
+        {"kind": "p", "identity": "P"},
+        {"kind": "q", "identity": "Q", "children": [
+            {"kind": "c", "identity": "C", "attributes": {"value": "1"}}]},
+    ]}
+
+    repo = Repo()
+    b = repo.commit("base", [], base)
+    o = repo.commit("ours", [b], ours)
+    t = repo.commit("theirs", [b], theirs)
+    merged, conflicts = repo.merge(o, t)
+
+    dangling = [c for c in conflicts if c["kind"] == "Dangling"]
+    assert len(dangling) == 1
+    assert dangling[0]["identity"] == "C"
+    assert dangling[0]["missing_parent"] == "Q"

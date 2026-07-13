@@ -217,16 +217,16 @@ checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "tate"
-version = "1.1.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a78b07400b7f18bd2b81852812b60330883345b59cd9e07320c74e098aa0e700"
+checksum = "8d747170e29fcb4d2f2ee0cc9a229d410cfd76f83aec1088b9236395ad446cb2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "tate-py"
-version = "1.1.1"
+version = "2.0.0"
 dependencies = [
  "pyo3",
  "serde_json",

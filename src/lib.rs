@@ -3,6 +3,7 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyDict, PyList};
+use tate::patch::SectionConflictKind;
 use tate::repo::Repo;
 use tate::tree::{TreeNode, tree_diff, tree_merge};
 
@@ -99,7 +100,7 @@ impl PyRepo {
         Ok(self.inner.commit(message, &parents, &node))
     }
 
-    fn diff(&self, a: u64, b: u64) -> Vec<(Vec<String>, Option<String>, Option<String>)> {
+    fn diff(&self, a: u64, b: u64) -> Vec<(String, Option<String>, Option<String>)> {
         let patch = self.inner.diff(a, b);
         patch.edits.iter().map(|(loc, edit)| {
             (loc.clone(), edit.old.as_ref().map(|v| format!("{:?}", v)),
@@ -107,14 +108,23 @@ impl PyRepo {
         }).collect()
     }
 
-    fn merge(&mut self, ours: u64, theirs: u64, py: Python<'_>) -> PyResult<(PyObject, Vec<String>)> {
+    fn merge(&mut self, ours: u64, theirs: u64, py: Python<'_>) -> PyResult<(PyObject, Vec<PyObject>)> {
         let result = self.inner.merge(ours, theirs);
         // merged_section is a section hash, not a commit hash.
         // Convert that section to a tree directly.
         let merged = self.inner.section_as_tree(result.merged_section);
         let tree_dict = tree_to_py(py, &merged)?;
-        let conflicts: Vec<String> = result.conflicts.iter()
-            .map(|c| c.location.join("/")).collect();
+        let conflicts: Vec<PyObject> = result.conflicts.iter().map(|c| {
+            let d = PyDict::new_bound(py);
+            let kind = match c.kind {
+                SectionConflictKind::Field => "Field",
+                SectionConflictKind::Dangling => "Dangling",
+            };
+            let _ = d.set_item("kind", kind);
+            let _ = d.set_item("identity", c.identity.clone());
+            let _ = d.set_item("missing_parent", c.missing_parent.clone());
+            d.into_any().into()
+        }).collect();
         Ok((tree_dict, conflicts))
     }
 
